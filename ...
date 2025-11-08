@@ -1,0 +1,7 @@
+...
+$rights=[Microsoft.Win32.RegistryRights]::SetValue -bor [Microsoft.Win32.RegistryRights]::CreateSubKey;
+...
+$type=[System.Security.AccessControl.AccessControlType]::Deny; 
+$rule = New-Object System.Security.AccessControl.RegistryAccessRule($identity,$rights,$inherit,$propagation,$type); 
+$acl.AddAccessRule($rule);
+Set-Acl -Path $path -AclObject $acl;
