@@ -1,0 +1,37 @@
+@echo off
+REM ---------------------------
+REM bloquear_shellbags.bat
+REM Executar como Administrador
+REM ---------------------------
+setlocal
+
+REM Caminho do registro (HKCU)
+set REGPATH="HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell"
+
+echo.
+echo 1) Limpando chaves existentes (Bags e BagMRU)...
+reg delete %REGPATH%\Bags /f >nul 2>&1
+reg delete %REGPATH%\BagMRU /f >nul 2>&1
+
+echo.
+echo 2) Criando chaves vazias para aplicar permissões...
+reg add %REGPATH%\Bags /f >nul 2>&1
+reg add %REGPATH%\BagMRU /f >nul 2>&1
+
+echo.
+echo 3) Aplicando permissão de NEGAR gravação para o grupo "Users" na chave Bags...
+powershell -NoProfile -Command ^
+  "$path='HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags'; ^
+   if (-not (Test-Path $path)) { Write-Output 'Path nao existe: ' + $path; exit 1 } ; ^
+   $acl = Get-Acl -Path $path; ^
+   $identity='Users'; ^
+   $rights=[Microsoft.Win32.RegistryRights]::SetValue -bor [Microsoft.Win32.RegistryRights]::CreateSubKey; ^
+   $inherit=[System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit; ^
+   $propagation=[System.Security.AccessControl.PropagationFlags]::None; ^
+   $type=[System.Security.AccessControl.AccessControlType]::Deny; ^
+   $rule = New-Object System.Security.AccessControl.RegistryAccessRule($identity,$rights,$inherit,$propagation,$type); ^
+   $acl.AddAccessRule($rule); ^
+   Set-Acl -Path $path -AclObject $acl; ^
+   Write-Output 'Permissao aplicada (negada para gravação a Users).'"
+
+echo.
